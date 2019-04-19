@@ -14,3 +14,10 @@ Search for WooCommerce plugin and then click:
 
 This will install WooCommerce plugin on your wordpress website and now you will be able to setup your online store.
 
+To start building your online store click:
+
+### Activate 
+
+![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/activate.png)
+
+
