@@ -39,3 +39,9 @@ local=1
 ```sh
 ~$ walletd --config=/etc/paymentgate.conf --generate-container
 ```
+
+
+#### 4. Start wallet:
+```sh
+~$ walletd --config=/etc/paymentgate.conf
+```
