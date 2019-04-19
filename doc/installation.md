@@ -1,4 +1,4 @@
-## Installing UltraNote Payment Gateway for WordPress
+### Installing UltraNote Payment Gateway for WordPress
 
 First login to your wordpress website then from the wordpress menu to the left click:
 
