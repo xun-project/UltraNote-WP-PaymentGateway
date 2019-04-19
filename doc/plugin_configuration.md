@@ -16,4 +16,5 @@
 
 You can check your wordpress dashboard for UltraNote payment gateway widget.
 
+![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/plugin3.png)
 
