@@ -12,4 +12,8 @@
 
 ![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/upload.png)
 
+- Select UltraNote Payment Gateway plugin and click:
 
+### Open
+
+![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/open.png)
