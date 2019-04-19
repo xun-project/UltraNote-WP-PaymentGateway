@@ -21,3 +21,5 @@ To start building your online store click:
 ![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/activate.png)
 
 
+### Once activated your website will be ready to install UltraNote Payment Gateway
+
