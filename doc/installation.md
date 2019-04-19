@@ -17,3 +17,8 @@
 ### Open
 
 ![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/open.png)
+
+### Install and Activa plugin
+
+![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/activate2.png)
+
