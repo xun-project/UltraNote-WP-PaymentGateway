@@ -6,3 +6,10 @@ First login to your wordpress website then from the wordpress menu to the left c
 
 ![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/add_new.png)
 
+Then click:
+
+### Upload Plugin
+
+![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/upload.png)
+
+
