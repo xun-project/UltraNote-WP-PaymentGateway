@@ -8,6 +8,7 @@ The plugin giving you the ability to keep track of sales using a dashboard widge
 
 Plugin also have a watchdog function to notify administrators if the wallet have any connection issue.
 
+
 ![alt text](https://www.ultranote.org/wp-content/uploads/2019/04/plugin3.png)
 
 
