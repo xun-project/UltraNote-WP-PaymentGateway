@@ -211,15 +211,49 @@ function wc_xun_gateway_init() {
 					echo "<h2>".wpautop( wptexturize( $this->instructions ) )."</h2>";
 				}
 				if ($this->market_xun_address) {
-					echo "</br><h3>Amount to pay EXACTLY:<br><input type='text' style='width:100%;background:transparent;border-width:0;' name='xun_to_pay' onClick='this.setSelectionRange(0, this.value.length)' readonly='readonly' value='".$order->get_meta('xun_to_pay')."'></h3></br>";
-					echo "<h3>To This Address:<br><input type='text' style='width:100%;background:transparent;border-width:0;' name='xun_market_address' onClick='this.setSelectionRange(0, this.value.length)' readonly='readonly' value='".$this->market_xun_address."'></h3></br>";
+					echo "</br><h3>Amount to pay EXACTLY (in Xun):<br><input type='text' style='font-size:36px;width:100%;background:transparent;border-width:0;' name='xun_to_pay' onClick='this.setSelectionRange(0, this.value.length)' readonly='readonly' value='".$order->get_meta('xun_to_pay')."'></h3></br>";
+					echo "<h3>To This Address:<br><input type='text' style='font-size:16px;width:100%;background:transparent;border-width:0;' name='xun_market_address' onClick='this.setSelectionRange(0, this.value.length)' readonly='readonly' value='".$this->market_xun_address."'></h3></br>";
 					echo "<div id='xun_market_address_qr'></div>";
 					echo '<script type="text/javascript">
 	new QRCode("xun_market_address_qr", "'.$this->market_xun_address.'");
 	</script>';
+					echo "<h3>The page will automatically refresh in <span id='timer'>07 minutes and 00 seconds</span></h3>";
+				?>
+					<script type="text/javascript">
+					function startTimer(duration, display) {
+					    var timer = duration, minutes, seconds;
+					    setInterval(function () {
+					        minutes = parseInt(timer / 60, 10)
+					        seconds = parseInt(timer % 60, 10);
+					        minutes = minutes < 10 ? "0" + minutes : minutes;
+					        seconds = seconds < 10 ? "0" + seconds : seconds;
+					        display.textContent = minutes + " minutes and " + seconds + " seconds";
+					        if (--timer < 0) {
+				        		 window.location.search += '&autoreload=1';
+					        }
+					    }, 1000);
+					}
+					window.onload = function () {
+					    var fiveMinutes = 60 * 7,
+				        display = document.querySelector('#timer');
+					    startTimer(fiveMinutes, display);
+					};
+					</script>
+
+
+				<?php
 				}
             } elseif ($order->has_status( 'processing' )) {
             	echo "<h1>Payement recieved successfully</h1>";
+            	if(isset($_GET['autoreload'])){
+            		?>
+            		<script type="text/javascript">
+            			window.onload = function () {
+            				alert("Payement recieved successfully, Thank you !");
+            			}
+            		</script>
+            		<?php
+            	}
             }
 		}
 	
@@ -290,11 +324,42 @@ function woo_personalize_order_received_title( $title, $id ) {
     return $title;
 }
 
+// add_action( 'init', 'tesssts' );
+// function tesssts(){
+// 	echo get_xun_to_curency_rate();
+// }
 
+
+function get_xun_to_curency_rate(){
+	// $xun_plugin_options=get_option('woocommerce_xun_gateway_settings');
+	// $apiUrl=$xun_plugin_options['json_rpc_link'];
+	// $apiuser=$xun_plugin_options['json_rpc_user'];
+	// $apipw=$xun_plugin_options['json_rpc_password'];
+
+	//get_woocommerce_currency();
+	$url = "https://api.coingecko.com/api/v3/simple/price?ids=ultra-note&vs_currencies=".get_woocommerce_currency(); 
+	$ch = curl_init();  
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+	curl_setopt($ch, CURLOPT_URL, $url); 
+	$result = curl_exec($ch); 
+	curl_close($ch);
+    $obj=json_decode($result, true);
+	if (current(current($obj))!==null) {
+		return current(current($obj));
+	}else{
+		return null;
+	}    
+}
 add_action('woocommerce_checkout_update_order_meta',function( $order_id, $posted ) {
     $order = wc_get_order( $order_id );
     $total = $order->get_total();
-	$new_total = $total + $order_id/100000;
+    $xun_to_curency_rate=get_xun_to_curency_rate();
+    if ($xun_to_curency_rate==null or $xun_to_curency_rate==false) {
+    	    $order->update_meta_data( 'xun_to_pay', null );
+    	    $order->save();
+    	    return false;
+    }
+	$new_total = round($total/$xun_to_curency_rate, 0, PHP_ROUND_HALF_UP) + $order_id/100000;
     $order->update_meta_data( 'xun_to_pay', $new_total );
     if ( ! empty( $_POST['xun_to_message'] ) ) {
         update_post_meta( $order_id, 'xun_to_message', sanitize_text_field( $_POST['xun_to_message'] ) );
@@ -378,7 +443,12 @@ function execute_xunrpc($method='getStatus',$params=array()){
     $response = curl_exec($ch);
     curl_close($ch);
     $obj=json_decode($response, false);
-    return $obj->result;
+    if (isset($obj->result)){
+    	return $obj->result;
+    }else{
+    	return null;
+    }
+    
 }
 function get_current_xunBlock(){
 	$response=execute_xunrpc('getStatus',[]);
@@ -399,13 +469,16 @@ function get_new_xunTransactions($Starting_block,$Current_block){
 	$range=(int)$Current_block-(int)$Starting_block;
 	$response=execute_xunrpc('getTransactions',['firstBlockIndex'=>(int)$Starting_block,"blockCount"=>$range]);
 	$transactions = array();
-    foreach ($response->items as $key => $item) {
-        if(count($item->transactions)>0){
-            $transactions[]=$item->transactions[0]->amount/1000000;
-        }
-    }
+	if(isset($response->items)){
+	    foreach ($response->items as $key => $item) {
+	        if(count($item->transactions)>0){
+	            $transactions[]=$item->transactions[0]->amount/1000000;
+	        }
+	    }
+	}
 	return 	$transactions;	
 }
+/*
 function Send_xun_message($message,$address){
 	$xun_plugin_options=get_option('woocommerce_xun_gateway_settings');
 	$marketaddress=$xun_plugin_options['market_xun_address'];
@@ -416,19 +489,22 @@ function Send_xun_message($message,$address){
 	$response=execute_xunrpc('sendTransaction',$parr);
 	return $response;
 }
+*/
 
-
-function Send_xun_money($message,$address){
-	$xun_plugin_options=get_option('woocommerce_xun_gateway_settings');
-	$marketaddress=$xun_plugin_options['market_xun_address'];
-	if ($message==1) {
-		$text= $_SERVER['HTTP_HOST'].': Your order is received, now processing';
-	}
-
-	$parr=['addresses'=>[$marketaddress],"anonymity"=>0,"fee"=>0,"ttl"=>time()+10,"extra"=>"01fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff04fffffffffff","text"=>$message,"transfers"=>[["amount"=>100,"address"=>$address]]];
-	$response=execute_xunrpc('sendTransaction',$parr);
-	return $response;
-}
+function sendTransaction($from,$to,$ammount){
+			$params=[
+			"addresses"=>[$from],
+				"anonymity"=> 2,
+				"fee"=> 10000,
+				"transfers"=>[
+					[
+						"amount"=>$ammount,
+						"address"=>$to
+					]
+			]];
+			$response=execute_xunrpc('sendTransaction',$params);
+			return $response->transactionHash;
+		}
 
 
 /**
@@ -453,6 +529,12 @@ function add_XUN_currency_symbol( $currency_symbol, $currency ) {
 
 add_action( 'init', 'CheckXunPayements' );
 function CheckXunPayements(){
+	WC()->mailer();
+
+	//require_once( 'includes/class-wc_email_admins_processing_order.php' );
+	//$order = wc_get_order( "429" );
+	//echo "i";
+	//do_action('woocommerce_order_status_on-hold_to_processing_notification',$order->get_id(),$order);
 	// update transactions from blockchain
 	// 1 get starting block from database
 	$Starting_block = get_option( 'mahxun_starting_block', 330000 );
@@ -482,20 +564,30 @@ function CheckXunPayements(){
 	$orders = wc_get_orders( $args );
 	// 3 if transaction = order then : change order status ; send message to client ; remove transaction from transactions.
 	$Transactions_to_del = array();
-
+	$thaks=false;
 	foreach ($orders as $key => $order) {
 		//echo $order->get_meta('xun_to_pay')."<br>";
 		if(in_array($order->get_meta('xun_to_pay'), $All_transactions)){
+			$thaks=true;
 			$Transactions_to_del[]=$order->get_meta('xun_to_pay');
 			$order->update_status( 'processing' );
 			$order->save();
-			Send_xun_message(1,$order->get_meta('xun_to_message')); //<function to create
+			do_action('woocommerce_order_status_on-hold_to_processing_notification',$order->get_id(),$order);
+			//Send_xun_message(1,$order->get_meta('xun_to_message')); //<function to create
 		}
 	}
+
+	/*
+	if(isset($_GET['mai'])){
+		$oo=$orders[0];
+		do_action('woocommerce_order_status_on-hold_to_processing_notification',$oo->get_id(),$oo);
+	}*/
 	$All_transactions=array_diff($All_transactions, $Transactions_to_del);
 	// 4 save transactions to database
 	update_option( 'mahxun_transactions', $All_transactions );
 }
+
+
 
 
 add_action('wp_enqueue_scripts','qrcode_gen_js_init');
@@ -504,11 +596,11 @@ function qrcode_gen_js_init() {
 }
 
 
+// Dashboard Widget
 add_action('wp_dashboard_setup', 'xun_dashboard_widgets');
 function xun_dashboard_widgets() {
-global $wp_meta_boxes;
- 
-wp_add_dashboard_widget('xun_help_widget', 'Current Ultranote (XUN) Wallet Balance', 'xun_dashboard_help');
+	global $wp_meta_boxes;
+	wp_add_dashboard_widget('xun_help_widget', 'Current Ultranote (XUN) Wallet Balance', 'xun_dashboard_help');
 }
  
 function xun_dashboard_help() {
@@ -520,10 +612,77 @@ function xun_dashboard_help() {
 	}else{
 		$xunBallance="RPC connection Failed.";
 	}
-	echo '<style type="text/css">#xun_help_widget{text-align: center;background:url('.plugins_url( '/images/Ultranote_Bg.png', __FILE__ ).');padding-bottom: 20px;}#xun_help_widget *{color:white;}</style>';
+	echo '<style type="text/css">#xun_help_widget{text-align: center;background:url('.plugins_url( '/images/Ultranote_Bg.png', __FILE__ ).') #233fbb;background-size: cover;padding-bottom: 20px;}#xun_help_widget *{color:white;} #sendxun input[type="checkbox"],#sendxun input[type="checkbox"]+div{display:none;} #sendxun input:checked+div{display:block;} #sendxun input[type="text"],#sendxun textarea {width: 100%; color:black; text-align:center;}</style>';
 	echo '<img width="100%" src="'.plugins_url( '/images/UltraNote_Logo.png', __FILE__ ).'"/>';
 	echo '<h2>Current Market Address :</h2><div style="word-break: break-all;">';
 	echo "<textarea rows='3' style='word-break: break-all; width:100%;background:transparent;border-width:0;resize: none;overflow: hidden;' name='xun_market_address' onClick='this.setSelectionRange(0, this.value.length)' readonly='readonly'>".$marketaddress."</textarea>";
-	echo '</div><h2>Current Ultranote Ballance :</h2>';
+	echo '</div><h2>Current UltraNote Balance :</h2>';
 	echo '<span style="width: 100%;font-size: 30px;text-align: center;display: inline-block;padding: 5px 0;">'.$xunBallance.'</span>';
+	echo '<div id="sendxun"><label for="showit"><h2 style="margin:25px;padding:5px 5px 10px; border:1px solid white; border-radius:5px;">Send XUN to Another Address</h2></label><input type="checkbox" id="showit"><div><form method="post"><h2>Address:</h2><br><textarea name="xun_address" rows="2"></textarea><br><h2>Amount (Xun):</h2><br><input name="ammount" type="text"><input style="color:black; margin: 25px 0 0; border-radius:2px;border: 0;box-shadow: none;padding: 10px 20px;" type="submit" value="Send"></form></div></div>';
 }
+add_action( 'init', 'dashboard_idget_actions' );
+function dashboard_idget_actions(){
+	if (isset($_POST['xun_address']) and isset($_POST['ammount'])){
+
+		if (!is_numeric($_POST['ammount']) or $_POST['ammount']<0) {
+			add_action( 'admin_notices', 'widget_xun_notnumeric' );
+			return false;
+		}
+
+		$xun_plugin_options=get_option('woocommerce_xun_gateway_settings');
+		$marketaddress=$xun_plugin_options['market_xun_address'];
+		$xunBal=get_current_xunBallance();
+		if ($_POST['ammount']>get_current_xunBallance()) {
+			add_action( 'admin_notices', 'widget_xun_toobig' );
+			return false;	
+		}
+		if(is_null(sendTransaction($marketaddress,$_POST['xun_address'],$_POST['ammount']*1000000) )){
+			add_action( 'admin_notices', 'widget_xun_unknown_error' );
+			return false;
+		}
+		add_action( 'admin_notices', 'widget_xun_sent' );
+	}	
+}
+function widget_xun_sent(){
+	?><div class="updated notice"><p>You successfully sent the Ultranote; The transfer will be confirmed within the next 10 minutes</p></div><?php
+}
+function widget_xun_notnumeric(){
+	?><div class="error notice"><p>Please enter a valid ammount !</p></div><?php
+}
+function widget_xun_toobig(){
+	?><div class="error notice"><p>The ammount you selected is too big !</p></div><?php
+}
+function widget_xun_unknown_error(){
+	?><div class="error notice"><p>An error occurred, please try again !</p></div><?php
+}
+// End Dashboard Widget
+
+
+
+// Add customer address to the order email.
+add_action( 'woocommerce_email_after_order_table', 'action_woocommerce_email_after_order_tablex', 10, 4 ); 
+function action_woocommerce_email_after_order_tablex( $order, $sent_to_admin, $plain_text, $email ) { 
+	$xun_plugin_options=get_option('woocommerce_xun_gateway_settings');
+	$marketaddress=$xun_plugin_options['market_xun_address'];
+    ?>
+    <p><h2 style='color:#410dec;display:block;font-family:"Helvetica Neue",Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;margin:0 0 18px;text-align:left'>Customer Xun Address :</h2><?php echo $order->get_meta('xun_to_message'); ?></p><p>------------------------------</p></br> 
+<?php
+}; 
+
+
+// Woocommerce email template customisation
+function add_expedited_order_woocommerce_email( $email_classes ) {
+	//WC()->mailer();
+	require_once( 'includes/class-wc_email_admins_processing_order.php' );
+	$email_classes['WC_Email_Admins_Processing_Order'] = new WC_Email_Admins_Processing_Order();
+	return $email_classes;
+}
+add_filter( 'woocommerce_email_classes', 'add_expedited_order_woocommerce_email' );
+
+add_filter( 'woocommerce_locate_template', 'override_woocommerce_template', 10, 3 );
+function override_woocommerce_template( $template, $template_name, $template_path ) {
+    $template_directory = untrailingslashit( plugin_dir_path( __FILE__ ) ) . '/includes/woocommerce_templates/';
+    $path = $template_directory . $template_name;
+    return file_exists( $path ) ? $path : $template;
+}
+// End Woocommerce email template customisation
