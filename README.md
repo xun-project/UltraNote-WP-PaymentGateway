@@ -1,4 +1,4 @@
-# UltraNote-WP-PayemtGateway
+# UltraNote-WP-PaymentGateway
 UltraNote WordPress-WooCommerce Payment Gateway.
 
 Most likely you will need to run walletd and generate a new container on local or remote host and connect the plugin to walletd API.
