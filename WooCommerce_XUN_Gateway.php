@@ -4,7 +4,7 @@
  * Plugin URI: https://github.com/xun-project/UltraNote-WP-PayemtGateway
  * Description: Receive Ultranote (XUN) payments with woocommerce.
  * Author: UltraNote Team.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Text Domain: wc-gateway-xun
  * Domain Path: /i18n/languages/
  *
@@ -467,7 +467,7 @@ function get_current_xunBallance(){
 }
 function get_new_xunTransactions($Starting_block,$Current_block){
 	$range=(int)$Current_block-(int)$Starting_block;
-	$response=execute_xunrpc('getTransactions',['firstBlockIndex'=>(int)$Starting_block,"blockCount"=>$range]);
+	$response=execute_xunrpc('getTransactions',['firstBlockIndex'=>(int)$Starting_block,"blockCount">$range]);
 	$transactions = array();
 	if(isset($response->items)){
 	    foreach ($response->items as $key => $item) {
