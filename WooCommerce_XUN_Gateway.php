@@ -3,8 +3,8 @@
  * Plugin Name: WooCommerce xun Gateway
  * Plugin URI: https://github.com/xun-project/UltraNote-WP-PayemtGateway
  * Description: Receive Ultranote (XUN) payments with woocommerce.
- * Author: Hass.
- * Version: 1.0
+ * Author: UltraNote Team.
+ * Version: 1.0.2
  * Text Domain: wc-gateway-xun
  * Domain Path: /i18n/languages/
  *
@@ -14,7 +14,7 @@
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
  *
  * @package   WC-Gateway-xun
- * @author    Hass.
+ * @author    UltraNote Team
  * @category  Admin
  * @copyright Copyright (c) 2015-2019, UltraNote XUN, Inc. and WooCommerce
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
@@ -71,9 +71,9 @@ add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'wc_xun_gatewa
  *
  * @class 		WC_Gateway_xun
  * @extends		WC_Payment_Gateway
- * @version		1.0.0
+ * @version		1.0.2
  * @package		WooCommerce/Classes/Payment
- * @author 		Hass.
+ * @author 		UltraNote Team
  */
 
 
