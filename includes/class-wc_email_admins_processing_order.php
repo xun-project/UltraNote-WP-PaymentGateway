@@ -79,7 +79,7 @@ if ( ! class_exists( 'WC_Email_Admins_Processing_Order' ) ) :
          */
         public function trigger( $order_id, $order = false ) {
             $this->setup_locale();
-            add_action( 'woocommerce_thankyou_xun_gateway', array( $this, 'thakno' ) );
+            add_action( 'woocommerce_thankyou_xuni_gateway', array( $this, 'thakno' ) );
             if ( $order_id && ! is_a( $order, 'WC_Order' ) ) {
                 $order = wc_get_order( $order_id );
             }
